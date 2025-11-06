@@ -1,56 +1,101 @@
 import streamlit as st
-from openai import OpenAI
+import pandas as pd
 
-# Show title and description.
-st.title("💬 Chatbot")
-st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+# Page configuration
+st.set_page_config(page_title="📊 CSV Table Viewer", layout="wide")
+
+# Title
+st.title("📊 CSV Table Viewer")
+st.write("Upload CSV files to view them as tables")
+
+# File uploader
+uploaded_files = st.file_uploader(
+    "Choose CSV file(s)",
+    type=['csv'],
+    accept_multiple_files=True
 )
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
+if uploaded_files:
+    # Create tabs if multiple files
+    if len(uploaded_files) > 1:
+        tabs = st.tabs([file.name for file in uploaded_files])
+
+        for tab, file in zip(tabs, uploaded_files):
+            with tab:
+                try:
+                    df = pd.read_csv(file)
+
+                    # Display stats
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Rows", len(df))
+                    with col2:
+                        st.metric("Columns", len(df.columns))
+                    with col3:
+                        st.metric("Size", f"{file.size / 1024:.1f} KB")
+
+                    # Display dataframe
+                    st.dataframe(df, use_container_width=True)
+
+                    # Download button
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="📥 Download CSV",
+                        data=csv,
+                        file_name=file.name,
+                        mime='text/csv',
+                    )
+
+                except Exception as e:
+                    st.error(f"Error reading {file.name}: {str(e)}")
+    else:
+        # Single file
+        file = uploaded_files[0]
+        try:
+            df = pd.read_csv(file)
+
+            # Display stats
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Rows", len(df))
+            with col2:
+                st.metric("Columns", len(df.columns))
+            with col3:
+                st.metric("Size", f"{file.size / 1024:.1f} KB")
+
+            # Display dataframe
+            st.dataframe(df, use_container_width=True)
+
+            # Show column info
+            with st.expander("📋 Column Information"):
+                col_info = pd.DataFrame({
+                    'Column': df.columns,
+                    'Type': df.dtypes.values,
+                    'Non-Null Count': df.count().values,
+                    'Null Count': df.isnull().sum().values
+                })
+                st.dataframe(col_info, use_container_width=True)
+
+            # Download button
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv,
+                file_name=file.name,
+                mime='text/csv',
+            )
+
+        except Exception as e:
+            st.error(f"Error reading file: {str(e)}")
 else:
+    st.info("👆 Upload one or more CSV files to get started")
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
-
-    # Create a session state variable to store the chat messages. This ensures that the
-    # messages persist across reruns.
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-
-    # Display the existing chat messages via `st.chat_message`.
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # Create a chat input field to allow the user to enter a message. This will display
-    # automatically at the bottom of the page.
-    if prompt := st.chat_input("What is up?"):
-
-        # Store and display the current prompt.
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
-        # Generate a response using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
-
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
-        with st.chat_message("assistant"):
-            response = st.write_stream(stream)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    # Sample data demo
+    st.subheader("📝 Example")
+    sample_data = pd.DataFrame({
+        'Name': ['Alice', 'Bob', 'Charlie', 'David'],
+        'Age': [25, 30, 35, 28],
+        'City': ['New York', 'San Francisco', 'Los Angeles', 'Chicago'],
+        'Score': [95, 87, 92, 88]
+    })
+    st.dataframe(sample_data, use_container_width=True)
