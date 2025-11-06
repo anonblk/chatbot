@@ -1,10 +1,17 @@
-# 💬 Chatbot template
+# 📊 CSV Table Viewer
 
-A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
+A simple Streamlit app for viewing and exploring CSV files.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chatbot-template.streamlit.app/)
+## Features
 
-### How to run it on your own machine
+- 📤 Upload single or multiple CSV files
+- 📊 Display data in interactive tables
+- 📈 Show row/column counts and file size
+- 📋 View column information (types, null counts)
+- 📥 Download processed CSV files
+- 🔄 Support for multiple files with tabs
+
+## How to run it locally
 
 1. Install the requirements
 
@@ -17,3 +24,9 @@ A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
    ```
    $ streamlit run streamlit_app.py
    ```
+
+## Deploy to Streamlit Cloud
+
+1. Push this repo to GitHub
+2. Go to https://share.streamlit.io/
+3. Deploy from your GitHub repository
