@@ -1,101 +1,117 @@
 import streamlit as st
 import pandas as pd
+from openai import OpenAI
 
-# Page configuration
-st.set_page_config(page_title="📊 CSV Table Viewer", layout="wide")
+# Page config
+st.set_page_config(page_title="📊 CSV Data Chat", layout="wide")
 
-# Title
-st.title("📊 CSV Table Viewer")
-st.write("Upload CSV files to view them as tables")
-
-# File uploader
-uploaded_files = st.file_uploader(
-    "Choose CSV file(s)",
-    type=['csv'],
-    accept_multiple_files=True
+# Initialize OpenAI client with DeepSeek
+client = OpenAI(
+    api_key=st.secrets.get("DEEPSEEK_API_KEY", "optimalbet_eZUJHiYbKyVWzb95OQlQhnQjQumDbFVv"),
+    base_url="https://api.deepseek.com"
 )
 
-if uploaded_files:
-    # Create tabs if multiple files
-    if len(uploaded_files) > 1:
-        tabs = st.tabs([file.name for file in uploaded_files])
+# Title
+st.title("📊 CSV Data Chat")
+st.write("Upload a CSV file and ask questions about your data!")
 
-        for tab, file in zip(tabs, uploaded_files):
-            with tab:
+# File uploader
+uploaded_file = st.file_uploader("Upload your CSV file", type=['csv'])
+
+if uploaded_file:
+    # Read CSV
+    df = pd.read_csv(uploaded_file)
+
+    # Store in session state
+    if 'df' not in st.session_state:
+        st.session_state.df = df
+
+    # Display data
+    st.subheader("📋 Your Data")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Rows", len(df))
+    with col2:
+        st.metric("Columns", len(df.columns))
+    with col3:
+        st.metric("Size", f"{uploaded_file.size / 1024:.1f} KB")
+
+    st.dataframe(df, use_container_width=True)
+
+    # Chat section
+    st.divider()
+    st.subheader("💬 Ask Questions About Your Data")
+
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Display chat messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Chat input
+    if prompt := st.chat_input("Ask me anything about your CSV data..."):
+        # Add user message
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Prepare data context for AI
+        data_summary = f"""
+You have access to a CSV dataset with the following information:
+
+Columns: {', '.join(df.columns.tolist())}
+Number of rows: {len(df)}
+
+First few rows:
+{df.head(10).to_string()}
+
+Data types:
+{df.dtypes.to_string()}
+
+Basic statistics:
+{df.describe().to_string()}
+
+Answer the user's question based on this data.
+"""
+
+        # Generate AI response
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
                 try:
-                    df = pd.read_csv(file)
-
-                    # Display stats
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("Rows", len(df))
-                    with col2:
-                        st.metric("Columns", len(df.columns))
-                    with col3:
-                        st.metric("Size", f"{file.size / 1024:.1f} KB")
-
-                    # Display dataframe
-                    st.dataframe(df, use_container_width=True)
-
-                    # Download button
-                    csv = df.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="📥 Download CSV",
-                        data=csv,
-                        file_name=file.name,
-                        mime='text/csv',
+                    response = client.chat.completions.create(
+                        model="deepseek-chat",
+                        messages=[
+                            {"role": "system", "content": "You are a helpful data analyst assistant. Answer questions about the CSV data provided."},
+                            {"role": "system", "content": data_summary},
+                            *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
+                        ],
+                        stream=False
                     )
-
+                    answer = response.choices[0].message.content
+                    st.markdown(answer)
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
                 except Exception as e:
-                    st.error(f"Error reading {file.name}: {str(e)}")
-    else:
-        # Single file
-        file = uploaded_files[0]
-        try:
-            df = pd.read_csv(file)
+                    st.error(f"Error: {str(e)}")
 
-            # Display stats
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Rows", len(df))
-            with col2:
-                st.metric("Columns", len(df.columns))
-            with col3:
-                st.metric("Size", f"{file.size / 1024:.1f} KB")
+    # Clear chat button
+    if st.session_state.messages:
+        if st.button("🗑️ Clear Chat"):
+            st.session_state.messages = []
+            st.rerun()
 
-            # Display dataframe
-            st.dataframe(df, use_container_width=True)
-
-            # Show column info
-            with st.expander("📋 Column Information"):
-                col_info = pd.DataFrame({
-                    'Column': df.columns,
-                    'Type': df.dtypes.values,
-                    'Non-Null Count': df.count().values,
-                    'Null Count': df.isnull().sum().values
-                })
-                st.dataframe(col_info, use_container_width=True)
-
-            # Download button
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download CSV",
-                data=csv,
-                file_name=file.name,
-                mime='text/csv',
-            )
-
-        except Exception as e:
-            st.error(f"Error reading file: {str(e)}")
 else:
-    st.info("👆 Upload one or more CSV files to get started")
+    st.info("👆 Upload a CSV file to get started!")
 
-    # Sample data demo
-    st.subheader("📝 Example")
-    sample_data = pd.DataFrame({
-        'Name': ['Alice', 'Bob', 'Charlie', 'David'],
-        'Age': [25, 30, 35, 28],
-        'City': ['New York', 'San Francisco', 'Los Angeles', 'Chicago'],
-        'Score': [95, 87, 92, 88]
-    })
-    st.dataframe(sample_data, use_container_width=True)
+    # Example
+    st.subheader("💡 Example")
+    st.write("Once you upload a CSV, you can ask questions like:")
+    st.markdown("""
+    - What are the main trends in this data?
+    - What's the average of column X?
+    - Show me insights about the data
+    - Which column has the highest values?
+    - Summarize this data for me
+    """)

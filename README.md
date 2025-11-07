@@ -1,32 +1,32 @@
-# 📊 CSV Table Viewer
+# 📊 CSV Data Chat
 
-A simple Streamlit app for viewing and exploring CSV files.
+Upload CSV files and chat with AI about your data using DeepSeek!
 
 ## Features
 
-- 📤 Upload single or multiple CSV files
-- 📊 Display data in interactive tables
-- 📈 Show row/column counts and file size
-- 📋 View column information (types, null counts)
-- 📥 Download processed CSV files
-- 🔄 Support for multiple files with tabs
+- 📤 Upload CSV files
+- 📊 View your data in tables
+- 💬 Ask AI questions about your data
+- 🤖 Powered by DeepSeek AI
 
-## How to run it locally
+## How it Works
 
-1. Install the requirements
-
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+1. Upload a CSV file
+2. See your data displayed in a table
+3. Ask questions like:
+   - "What are the main trends?"
+   - "What's the average of column X?"
+   - "Summarize this data"
+   - "Which values are highest?"
 
 ## Deploy to Streamlit Cloud
 
-1. Push this repo to GitHub
+1. Push to GitHub
 2. Go to https://share.streamlit.io/
-3. Deploy from your GitHub repository
+3. Deploy from your repo
+4. Add this to your Streamlit Cloud secrets:
+   ```
+   DEEPSEEK_API_KEY = "your-api-key-here"
+   ```
+
+That's it! 🚀
