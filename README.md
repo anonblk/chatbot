@@ -5,10 +5,10 @@ A simple Streamlit app for viewing and exploring CSV files.
 ## Features
 
 - 📤 Upload single or multiple CSV files
-- 📊 Display data in interactive tables
-- 📈 Show row/column counts and file size
+- 📊 Display data in interactive tables with keyword filtering and column selection
+- 📈 Show row/column counts, file size, and quick summary statistics
 - 📋 View column information (types, null counts)
-- 📥 Download processed CSV files
+- 📥 Download filtered CSV files for further analysis
 - 🔄 Support for multiple files with tabs
 
 ## How to run it locally
